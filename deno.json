@@ -1,0 +1,23 @@
+{
+	"fmt": {
+		"options": {
+			"useTabs": true,
+			"semiColons": true
+		}
+	},
+	"imports": {
+		"@constants": "./constants/mod.ts",
+		"./core/Lexer": "./core/Lexer/mod.ts",
+		"./core/Parser": "./core/Parser/mod.ts",
+		"./core/Runtime": "./core/Runtime/mod.ts"
+	},
+	"lint": {
+		"rules": {
+			"exclude": [
+				"no-array-constructor",
+				"no-namespace",
+				"prefer-namespace-keyword"
+			]
+		}
+	}
+}

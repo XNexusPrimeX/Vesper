@@ -1,0 +1,19 @@
+import Component from '@structures/Component.fl'
+
+printMsg(msg) {
+	native.console.warn(msg)
+}
+
+@Component
+WebSocket {
+	@OnEvent:Message
+	getMessage(msg) {
+		printMsg(msg)
+	}
+}
+
+typemap WebSocket > getMessage
+		:param msg String
+		:returns Null
+
+typemap printMsg:param msg String

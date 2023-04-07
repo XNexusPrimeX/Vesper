@@ -1,0 +1,4 @@
+- seletores de tipos
+- escopos de execução
+- 2s, 1m, 5h, 10ms
+- As funções nativas podem ser extendidas facilmente
