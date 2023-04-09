@@ -1,5 +1,5 @@
 import type { Expressions, Program, Stmt } from "../Parser";
-import { FunctionValue, RuntimeValue } from "./values.ts";
+import { FunctionValue, NumberValue, RuntimeValue } from "./values.ts";
 import Environment from "./environment.ts";
 import {
 	AssignmentExpression,
@@ -38,8 +38,6 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeValue {
 		case "Identifier": {
 			const variable = env.lookupVar((astNode as Identifier).symbol);
 
-			console.log("identifier?? huh");
-
 			return evaluate(variable, env);
 		}
 		case "NumberLiteral": {
@@ -49,18 +47,20 @@ export function evaluate(astNode: Stmt, env: Environment): RuntimeValue {
 			};
 		}
 		case "BinaryOperation": {
-			const { left, operator, right } = astNode as BinaryOperation;
+			const binaryOperator = astNode as BinaryOperation;
 
-			const result = eval(`${left}${operator}${right}`);
+			const left = <NumberValue> evaluate(binaryOperator.left, env);
+			const operator = binaryOperator.operator;
+			const right = <NumberValue> evaluate(binaryOperator.right, env);
+
+			const result = eval(`${left.value}${operator}${right.value}`);
 
 			return { type: "number", value: result };
 		}
 		case "AssignmentExpression": {
 			const variable = astNode as AssignmentExpression;
 
-			console.log("testing");
 			env.declareVar(variable.symbol, variable.value, false);
-			console.log(env.lookupVar(variable.symbol));
 
 			return { type: "null", value: null };
 		}

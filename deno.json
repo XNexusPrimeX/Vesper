@@ -15,8 +15,7 @@
 		"rules": {
 			"exclude": [
 				"no-array-constructor",
-				"no-namespace",
-				"prefer-namespace-keyword"
+				"no-explicit-any"
 			]
 		}
 	}

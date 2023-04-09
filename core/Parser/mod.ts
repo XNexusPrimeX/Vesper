@@ -56,6 +56,8 @@ export class Parser extends TokenManager {
 		return this.additiveExpr();
 	}
 
+	// 3 * 2
+
 	private additiveExpr(): Expr {
 		const additiveOperators = ["+", "-"];
 		let left = this.multiplicitativeExpr();
@@ -162,26 +164,37 @@ export class Parser extends TokenManager {
 		}
 	}
 
+	// a () {}
+
 	private functionExpr(symbol: string) {
 		const params = this.args().map((p) => p.symbol);
 
-		this.expect(TT.OpenBrace, 'Expected "{"');
-
-		const body: Stmt[] = [];
-		while (
-			this.at().type !== TT.EOF &&
-			this.at().type !== TT.CloseBrace
-		) {
-			body.push(this.stmt());
-		}
-
+		this.eat();
 		this.eat();
 
-		return new Expressions.FunctionDeclaration({
-			symbol,
-			body,
-			params,
-		});
+		if (this.at().type == TT.OpenBrace) {
+			const body: Stmt[] = [];
+			while (
+				this.at().type !== TT.EOF &&
+				this.at().type !== TT.CloseBrace
+			) {
+				body.push(this.stmt());
+			}
+
+			this.eat();
+			S;
+
+			return new Expressions.FunctionDeclaration({
+				symbol,
+				body,
+				params,
+			});
+		} else {
+			this.callExpression();
+		}
+	}
+
+	private callExpression() {
 	}
 }
 
