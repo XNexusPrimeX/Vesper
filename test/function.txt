@@ -1,0 +1,12 @@
+firstDecorator(func) {
+	print('init func')
+	r = func(1, 2)
+	print('finalized func')
+	print(r)
+}
+
+plus(n1, n2) {
+	return n1 + n2
+}
+
+firstDecorator(plus)

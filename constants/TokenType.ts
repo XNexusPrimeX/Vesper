@@ -11,4 +11,5 @@ export enum TokenType {
 	BinaryOperator,
 	Keyword,
 	EOF,
+	String,
 }

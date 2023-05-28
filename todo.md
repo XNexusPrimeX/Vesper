@@ -1,0 +1,4 @@
+- [x] Create Function Expression
+- [ ] Create Class Expression
+- [ ] Create If Statement
+- [ ] Create Loops

@@ -6,11 +6,11 @@ class Flacid {
 	args: Array<string | undefined> = [...Deno.args];
 
 	constructor() {
-		let commandName = this.args.shift();
+		const commandName = (() => {
+			if (this.args[0]?.startsWith("-")) return undefined;
 
-		if (commandName?.startsWith("-")) {
-			commandName = undefined;
-		}
+			return this.args.shift();
+		})();
 
 		switch (commandName) {
 			case "run":
@@ -42,8 +42,6 @@ class Flacid {
 
 			const program = parser.parse(input);
 
-			console.log(program);
-
 			if (this.args.includes("--ast")) {
 				console.log(
 					Deno.inspect(program, { showHidden: false, depth: 10, colors: true }),
@@ -52,21 +50,22 @@ class Flacid {
 
 			const result = evaluate(program, env);
 
-			console.log(result.value);
 			if ("value" in result) {
+				console.log(result.value);
 			}
 		}
 	}
 
 	Run() {
 		const filePath = this.args.shift();
-		const completePath = null;
+		const completePath = Deno.cwd() + `/${filePath}`;
 
 		const parser = new Parser();
 		const env = createGlobalEnv();
 
 		const data = Deno.readTextFileSync(completePath);
 		const program = parser.parse(data);
+
 		evaluate(program, env);
 	}
 }

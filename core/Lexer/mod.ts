@@ -1,89 +1,139 @@
-import { BinaryOperators, TokenType } from "@constants";
+import { BinaryOperators, Keywords, TokenType } from "@constants";
 import { Token } from "./structure.Token.ts";
 
+class ListNode {
+	constructor(public token: Token, public next: ListNode | null = null) {}
+}
+
 export class Lexer {
-	static Tokenize(code: string): Array<Token> {
-		const lexer = new this();
-		const tokens = new Array();
-		const source = code.split("");
+	static Tokenize(code: string): Token[] {
+		let head: ListNode | null = null;
+		let tail: ListNode | null = null;
+		let currentIndex = 0;
+		const sourceLength = code.length;
 
-		const saveToken = (type: TokenType, value = "") =>
-			tokens.push(new Token(type, value));
+		const saveToken = (type: TokenType, value = "") => {
+			const token = new Token(type, value);
+			const newNode = new ListNode(token);
 
-		while (source.length > 0) {
-			if (source[0] == "(") {
-				saveToken(TokenType.OpenParen);
-				source.shift();
-			} else if (source[0] == ")") {
-				saveToken(TokenType.CloseParen);
-				source.shift();
-			} else if (source[0] == "{") {
-				saveToken(TokenType.OpenBrace);
-				source.shift();
-			} else if (source[0] == "}") {
-				saveToken(TokenType.CloseBrace);
-				source.shift();
-			} else if (source[0] == "@") {
-				saveToken(TokenType.Decorator);
-				source.shift();
-			} else if (source[0] == ",") {
-				saveToken(TokenType.Comma);
-				source.shift();
-			} else if (source[0] == "=") {
-				saveToken(TokenType.Equals);
-				source.shift();
-			} else if (BinaryOperators.is(source[0])) {
-				saveToken(TokenType.BinaryOperator, source.shift());
+			if (!head) {
+				head = newNode;
+				tail = newNode;
 			} else {
-				if (lexer.isInt(source[0])) {
+				tail!.next = newNode;
+				tail = newNode;
+			}
+		};
+
+		const advance = () => {
+			currentIndex++;
+		};
+
+		const currentChar = () => {
+			return code[currentIndex];
+		};
+
+		const isAlpha = (char: string) => {
+			return char.toUpperCase() !== char.toLowerCase();
+		};
+
+		const isSkippable = (char: string) => {
+			return char === " " || char === "\n" || char === "\t";
+		};
+
+		const isInt = (char: string) => {
+			const charCode = char.charCodeAt(0);
+			return charCode >= "0".charCodeAt(0) && charCode <= "9".charCodeAt(0);
+		};
+
+		while (currentIndex < sourceLength) {
+			const current = currentChar();
+
+			if (current === "(") {
+				saveToken(TokenType.OpenParen);
+				advance();
+			} else if (current === ")") {
+				saveToken(TokenType.CloseParen);
+				advance();
+			} else if (current === "{") {
+				saveToken(TokenType.OpenBrace);
+				advance();
+			} else if (current === "}") {
+				saveToken(TokenType.CloseBrace);
+				advance();
+			} else if (current === "@") {
+				saveToken(TokenType.Decorator);
+				advance();
+			} else if (current === ",") {
+				saveToken(TokenType.Comma);
+				advance();
+			} else if (current === "=") {
+				saveToken(TokenType.Equals);
+				advance();
+			} else if (current == "'" || current == '"') {
+				const quoteType = current as `"` | "'";
+
+				advance(); // move past the opening quote
+				let string = "";
+				while (currentChar() !== quoteType) {
+					string += currentChar();
+					advance();
+				}
+				advance(); // move past the closing quote
+
+				saveToken(TokenType.String, string);
+			} else if (BinaryOperators.is(current)) {
+				saveToken(TokenType.BinaryOperator, current);
+				advance();
+			} else {
+				if (isInt(current)) {
 					let num = "";
-					while (source.length > 0 && lexer.isInt(source[0])) {
-						num += source.shift();
+					while (currentIndex < sourceLength && isInt(currentChar())) {
+						num += currentChar();
+						advance();
 					}
 					saveToken(TokenType.Number, num);
-				} else if (lexer.isAlpha(source[0])) {
+				} else if (isAlpha(current)) {
 					let ident = "";
 					while (
-						source.length > 0 &&
-						(lexer.isAlpha(source[0]) || lexer.isInt(source[0]))
+						currentIndex < sourceLength &&
+						(isAlpha(currentChar()) || isInt(currentChar()))
 					) {
-						ident += source.shift();
+						ident += currentChar();
+						advance();
 					}
 
-					const reserved = false;
-					if (reserved) {
+					// TODO: Losing performance here
+					if (Keywords.hasOwnProperty(ident)) {
 						saveToken(TokenType.Keyword, ident);
 					} else {
 						saveToken(TokenType.Identifier, ident);
 					}
-				} else if (lexer.isSkippable(source[0])) {
-					source.shift();
+				} else if (isSkippable(current)) {
+					advance();
 				} else {
+					// TODO: Losing performance here
 					console.error(
-						"Unreconized character found in source: ",
-						source[0].charCodeAt(0),
-						source[0],
+						"Unrecognized character found in source: ",
+						current.charCodeAt(0),
+						current,
 					);
 					Deno.exit(1);
 				}
 			}
 		}
 
-		saveToken(TokenType.EOF, "End of File");
+		saveToken(TokenType.EOF);
+
+		// Converter a lista encadeada em um array
+		const tokens: Token[] = [];
+		let currentNode: ListNode | null = head;
+		while (currentNode) {
+			tokens.push((currentNode as ListNode).token);
+			currentNode = (currentNode as ListNode).next;
+		}
 
 		return tokens;
-	}
-
-	private isAlpha(source: string) {
-		return source.toUpperCase() != source.toLowerCase();
-	}
-	private isSkippable(str: string) {
-		return str == " " || str == "\n" || str == "\t";
-	}
-	private isInt(str: string) {
-		const c = str.charCodeAt(0);
-		const bounds = ["0".charCodeAt(0), "9".charCodeAt(0)];
-		return c >= bounds[0] && c <= bounds[1];
 	}
 }
 

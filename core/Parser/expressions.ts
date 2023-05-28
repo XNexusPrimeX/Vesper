@@ -1,13 +1,13 @@
 import { Expr, Stmt } from "./structures.ts";
 
 export class AssignmentExpression extends Expr {
-	symbol: string;
+	id: Identifier;
 	value: any;
 
 	constructor(options: AssignmentExpression) {
 		super();
 
-		this.symbol = options.symbol;
+		this.id = options.id;
 		this.value = options.value;
 	}
 }
@@ -27,26 +27,28 @@ export class BinaryOperation extends Expr {
 }
 
 export class FunctionDeclaration extends Expr {
-	symbol: string;
-	params: string[];
+	id: Identifier;
+	decorators: Identifier[];
+	params: Identifier[];
 	body: Stmt[];
 
 	constructor(options: FunctionDeclaration) {
 		super();
 
-		this.symbol = options.symbol;
+		this.id = options.id;
+		this.decorators = options.decorators;
 		this.params = options.params;
 		this.body = options.body;
 	}
 }
 
 export class Identifier extends Expr {
-	symbol: string;
+	name: string;
 
 	constructor(options: Identifier) {
 		super();
 
-		this.symbol = options.symbol;
+		this.name = options.name;
 	}
 }
 
@@ -75,5 +77,16 @@ export class BooleanLiteral extends Expr {
 		super();
 
 		this.value = options.value;
+	}
+}
+export class CallExpr extends Expr {
+	callee: Identifier;
+	args: Array<Expr>;
+
+	constructor(options: CallExpr) {
+		super();
+
+		this.callee = options.callee;
+		this.args = options.args;
 	}
 }

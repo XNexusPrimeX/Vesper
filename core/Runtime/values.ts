@@ -8,9 +8,24 @@ export type ValueType =
 	| "object"
 	| "function";
 
+export type FunctionCall = (
+	args: RuntimeValue[],
+	env: Environment,
+) => RuntimeValue;
+
+export interface NativeFunctionValue {
+	type: "native-function";
+	call: FunctionCall;
+}
+
 export interface NullValue {
 	type: "null";
 	value: null;
+}
+
+export interface StringValue {
+	type: "string";
+	value: string;
 }
 
 export interface BooleanValue {
@@ -31,6 +46,7 @@ export interface ObjectValue {
 export interface FunctionValue {
 	type: "function";
 	name: string;
+	decorators: string[];
 	parameters: string[];
 	declarationEnv: Environment;
 	body: Stmt[];
@@ -39,4 +55,7 @@ export interface FunctionValue {
 export type RuntimeValue =
 	| NullValue
 	| NumberValue
-	| FunctionValue;
+	| BooleanValue
+	| StringValue
+	| FunctionValue
+	| NativeFunctionValue;

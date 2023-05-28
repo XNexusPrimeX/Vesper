@@ -3,6 +3,7 @@ import { Lexer, Token } from "../Lexer";
 
 import { Expr, Program, Stmt } from "./structures.ts";
 import * as Expressions from "./expressions.ts";
+import * as Statements from "./statements.ts";
 
 class TokenManager {
 	protected tokens: Token[] = [];
@@ -31,6 +32,13 @@ class TokenManager {
 
 		return prev;
 	}
+	throw(err: unknown) {
+		console.error(
+			"Parser Error:\n",
+			err,
+		);
+		Deno.exit(1);
+	}
 }
 
 export class Parser extends TokenManager {
@@ -42,29 +50,41 @@ export class Parser extends TokenManager {
 		});
 
 		while (!this.isFileEnd()) {
-			AST.body.push(this.stmt());
+			AST.body.push(this.parseStmt());
 		}
 
 		return AST;
 	}
 
-	private stmt(): Stmt {
-		return this.expr();
+	private parseStmt(): Stmt {
+		if (this.at().type == TT.Keyword) {
+			switch (this.at().value) {
+				case "return":
+					return this.parseReturnStmt();
+
+				default:
+					return this.parseExpr();
+			}
+		} else {
+			return this.parseExpr();
+		}
 	}
 
-	private expr(): Expr {
-		return this.additiveExpr();
+	private parseExpr(): Expr {
+		if (this.at().type == TT.Decorator) {
+			return this.parseDecorator();
+		} else {
+			return this.parseAdditiveExpr();
+		}
 	}
 
-	// 3 * 2
-
-	private additiveExpr(): Expr {
+	private parseAdditiveExpr(): Expr {
 		const additiveOperators = ["+", "-"];
-		let left = this.multiplicitativeExpr();
+		let left = this.parseMultiplicitativeExpr();
 
 		while (additiveOperators.includes(this.at().value)) {
 			const operator = this.eat().value;
-			const right = this.multiplicitativeExpr();
+			const right = this.parseMultiplicitativeExpr();
 			left = new Expressions.BinaryOperation({
 				left,
 				right,
@@ -75,12 +95,12 @@ export class Parser extends TokenManager {
 		return left;
 	}
 
-	private multiplicitativeExpr(): Expr {
-		let left = this.primaryExpr();
+	private parseMultiplicitativeExpr(): Expr {
+		let left = this.parsePrimaryExpr();
 
 		while (BinaryOperators.isMultiplicitate(this.at().value)) {
 			const operator = this.eat().value;
-			const right = this.primaryExpr();
+			const right = this.parsePrimaryExpr();
 			left = new Expressions.BinaryOperation({
 				left,
 				right,
@@ -91,34 +111,39 @@ export class Parser extends TokenManager {
 		return left;
 	}
 
-	private primaryExpr(): Expr {
+	private parsePrimaryExpr(): Expr {
 		const tk = this.at().type;
 
 		switch (tk) {
 			case TT.Identifier: {
-				const symbol = this.eat().value;
-				const nextToken = this.at();
+				const ident = new Expressions.Identifier({
+					name: this.eat().value,
+				});
 
+				const nextToken = this.at();
 				if (nextToken.type == TT.Equals) {
-					return this.assignmentExpr(symbol);
+					return this.parseAssignmentExpr(ident);
 				} else if (nextToken.type == TT.OpenParen) {
-					return this.functionExpr(symbol);
+					return this.parseFunctionExpr(ident);
 				} else if (nextToken.type == TT.OpenBrace) {
 					// class
 				}
 
-				return new Expressions.Identifier({
-					symbol,
-				});
+				return ident;
 			}
 			case TT.Number: {
 				return new Expressions.NumberLiteral({
 					value: parseFloat(this.eat().value),
 				});
 			}
+			case TT.String: {
+				return new Expressions.StringLiteral({
+					value: this.eat().value,
+				});
+			}
 			case TT.OpenParen: {
 				this.eat();
-				const value = this.expr();
+				const value = this.parseExpr();
 				this.expect(TT.CloseParen, 'Expected ")"');
 
 				return value;
@@ -129,17 +154,17 @@ export class Parser extends TokenManager {
 			}
 		}
 	}
-	private assignmentExpr(symbol: string): Expr {
+	private parseAssignmentExpr(id: Expressions.Identifier): Expr {
 		this.eat();
-		const stmt = this.stmt();
+		const stmt = this.parseStmt();
 
 		return new Expressions.AssignmentExpression({
-			symbol,
+			id,
 			value: stmt,
 		});
 	}
 
-	private args() {
+	private parseArgs() {
 		this.expect(TT.OpenParen, 'Expected "("');
 
 		if (this.at().type == TT.CloseParen) {
@@ -147,15 +172,10 @@ export class Parser extends TokenManager {
 
 			return [];
 		} else {
-			const parseIdentifier = () =>
-				new Expressions.Identifier({
-					symbol: this.expect(TT.Identifier, "Expected string").value,
-				});
-
-			const args = [parseIdentifier()];
+			const args = [this.parseExpr()];
 
 			while (this.at().type == TT.Comma && this.eat()) {
-				args.push(parseIdentifier());
+				args.push(this.parseExpr());
 			}
 
 			this.expect(TT.CloseParen, 'Expected ")"');
@@ -164,39 +184,76 @@ export class Parser extends TokenManager {
 		}
 	}
 
-	// a () {}
+	private parseDecorator() {
+		const decorators = new Array<Expressions.Identifier>();
 
-	private functionExpr(symbol: string) {
-		const params = this.args().map((p) => p.symbol);
+		while (this.at().type == TT.Decorator) {
+			this.eat();
+			const identifier = this.parseExpr();
 
-		this.eat();
-		this.eat();
+			if (identifier.constructor.name !== "Identifier") {
+				this.throw("Expected Identifier");
+			} else {
+				decorators.push(identifier as Expressions.Identifier);
+			}
+		}
+
+		const element = this.parseExpr();
+
+		if (["FunctionDeclaration"].includes(element.constructor.name)) {
+			(element as Expressions.FunctionDeclaration).decorators = decorators;
+		} else {
+			this.throw("decorators are not valid here");
+		}
+
+		return element;
+	}
+
+	private parseFunctionExpr(id: Expressions.Identifier) {
+		const args = this.parseArgs();
 
 		if (this.at().type == TT.OpenBrace) {
+			this.eat();
+
 			const body: Stmt[] = [];
 			while (
 				this.at().type !== TT.EOF &&
 				this.at().type !== TT.CloseBrace
 			) {
-				body.push(this.stmt());
+				body.push(this.parseStmt());
 			}
 
-			this.eat();
-			S;
+			const argsAreIdent = args.every((a) =>
+				a.constructor.name === "Identifier"
+			);
+			if (!argsAreIdent) {
+				this.throw("Params of function declaration needs be a 'Identifier'");
+			}
+
+			this.expect(TT.CloseBrace, 'Expected "}"');
 
 			return new Expressions.FunctionDeclaration({
-				symbol,
+				id,
+				decorators: [],
 				body,
-				params,
+				params: args as Array<Expressions.Identifier>,
 			});
 		} else {
-			this.callExpression();
+			return new Expressions.CallExpr({
+				callee: id,
+				args,
+			});
 		}
 	}
 
-	private callExpression() {
+	private parseReturnStmt() {
+		this.eat();
+
+		return new Statements.ReturnStmt({
+			arg: this.parseStmt(),
+		});
 	}
 }
 
-export { Expr, Expressions, Program, Stmt };
+export { Expr, Expressions, Program, Statements, Stmt };
 export default Parser;

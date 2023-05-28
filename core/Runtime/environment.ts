@@ -2,10 +2,20 @@ import { RuntimeValue } from "./values.ts";
 
 export function createGlobalEnv() {
 	const env = new Environment();
-	// Create Default Global Enviornment
-	// env.declareVar("true", { type: "boolean", value: true }, true);
-	// env.declareVar("false", { type: "boolean", value: false }, true);
+
+	env.declareVar("true", { type: "boolean", value: true }, true);
+	env.declareVar("false", { type: "boolean", value: false }, true);
 	env.declareVar("null", { type: "null", value: null }, true);
+	env.declareVar("print", {
+		type: "native-function",
+		call: (args) => {
+			console.log(...args.map((a) => {
+				if ("value" in a) return a.value;
+			}));
+
+			return { type: "null", value: null };
+		},
+	}, true);
 
 	return env;
 }
@@ -14,6 +24,7 @@ export default class Environment {
 	private parent?: Environment;
 	private variables: Map<string, RuntimeValue>;
 	private constants: Set<string>;
+	public returned = false;
 
 	constructor(parentENV?: Environment) {
 		// deno-lint-ignore no-unused-vars
