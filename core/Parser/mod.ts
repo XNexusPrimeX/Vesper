@@ -61,7 +61,8 @@ export class Parser extends TokenManager {
 			switch (this.at().value) {
 				case "return":
 					return this.parseReturnStmt();
-
+				case "if":
+					return this.parseIfStmt();
 				default:
 					return this.parseExpr();
 			}
@@ -109,6 +110,9 @@ export class Parser extends TokenManager {
 		}
 
 		return left;
+	}
+
+	private parseIfStmt() {
 	}
 
 	private parsePrimaryExpr(): Expr {
