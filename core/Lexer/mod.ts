@@ -34,7 +34,7 @@ export class Lexer {
 		};
 
 		const isAlpha = (char: string) => {
-			return char.toUpperCase() !== char.toLowerCase();
+			return char.match(/[a-zA-Z]/) !== null;
 		};
 
 		const isSkippable = (char: string) => {

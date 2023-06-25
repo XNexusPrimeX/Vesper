@@ -32,7 +32,7 @@ class Flacid {
 		const env = createGlobalEnv();
 		const parser = new Parser();
 
-		console.log("\nFlacid v0.1");
+		console.log("\nVesper v0.1");
 
 		while (true) {
 			const input = prompt("> ");
